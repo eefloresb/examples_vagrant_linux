@@ -1,0 +1,26 @@
+[OSEv3]
+192.168.33.81
+192.168.33.82
+192.168.33.83
+192.168.33.84
+192.168.33.85
+192.168.33.86
+192.168.33.87
+192.168.33.88
+192.168.33.89
+192.168.33.90
+
+[docker]
+node01 ansible_host="192.168.33.81"
+node02 ansible_host="192.168.33.82"
+infra01 ansible_host="192.168.33.86"
+infra02 ansible_host="192.168.33.87"
+infra03 ansible_host="192.168.33.88"
+
+[node]
+node01 ansible_host="192.168.33.81"
+node02 ansible_host="192.168.33.82"
+
+[haproxy]
+hamaster ansible_host="192.168.33.89"
+habackup ansible_host="192.168.33.90"

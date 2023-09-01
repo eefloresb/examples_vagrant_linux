@@ -1,0 +1,11 @@
+---
+- name: the redhat
+  hosts: all
+  become: true
+  tasks:
+    - name: Redhat_subscription
+      redhat_subscription:
+        state: present
+        username: { { username } }
+        password: { { password } }
+        auto_attach: true

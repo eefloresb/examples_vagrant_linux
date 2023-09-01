@@ -1,0 +1,20 @@
+Vagrant.configure("2") do |config|
+ config.vm.define "web" do |web|
+ config.vm.provision "shell", path: "~/data/scripts/bash/check_so_vagrant.sh"
+  web.vm.box = "bento/centos-5"
+  web.vm.hostname = "lnxcentos5"
+  web.vm.network "private_network", ip: "192.168.56.3"
+  web.vm.provider "virtualbox" do |vb|
+      vb.memory = "512"
+      vb.cpus = "1"
+      vb.linked_clone = true
+      vb.name = "lnxcentos5"
+  end
+  web.vm.provision "ansible" do |ansible|
+    ansible.extra_vars = {
+      remove_ip: "192.168.56.3"
+     }
+  	ansible.playbook = "~/data/ansible/personal/deploy-users-sw-vagrant/os_line_base_vagrant/create-user-vagrant.yml"
+  end
+ end
+end

@@ -1,0 +1,4 @@
+.vagrant
+*.log
+vagrant-ssh
+data_disk{1..9}.vdi

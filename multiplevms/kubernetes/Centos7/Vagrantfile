@@ -1,0 +1,173 @@
+datadisk1 = 'data_disk1.vdi'
+datadisk2 = 'data_disk2.vdi'
+Vagrant.configure("2") do |config|
+
+  config.vm.provision "shell",
+    type: "shell",
+    preserve_order: true,
+    inline: <<-SHELL
+          #!/bin/sh
+      _registration_os_suse(){
+          SUSEConnect -e ${user_email} -r {user_register}
+      }
+       _deregistration_os_suset(){
+          SUSEConnect -d
+      }
+      _registration_os_redhat(){
+            if [ `which subscription-manager` ]
+            then
+                 subscription-manager register --username=$username --password=$password --auto-attach --force
+            fi
+       }
+       _deregistration_os_redhat(){
+            if [ `which subscription-manager` ]
+            then
+              subscription-manager unregister
+            fi
+       }
+      _get_Amazon(){
+          os=$1
+          version=${2}
+      }
+      _get_Suse(){
+          os=$1
+          version=${2}
+      }
+      _get_RedHat(){
+           os=$1
+           version=$2
+           band=false
+           if [ `which subscription-manager 2>/dev/null` ]; then
+                if [ `subscription-manager status | grep Overall | cut -d : -f 2 | tr -d " "` == "Unknown" ]
+                then
+                    _registration_os_redhat
+                    band=false
+                fi
+           fi
+           ### Desactiva repositorio epel para oracle
+           if [ $os = "Oracle" ]; then
+                sed -i -e "/enabled/s/1/0/" /etc/yum.repos.d/epel.repo
+           fi
+           if [[ $version -gt 7 ]]; then
+               dnf install python2
+               ln -s /usr/bin/python2 /usr/bin/python
+           elif [[ $version -eq 7 ]]; then
+                echo -e "LANG=en_US.UTF-8\nLC_ALL=en_US.UTF-8" > /etc/environment
+           elif [[ $version -eq 6 ]]; then
+                yum install -y libselinux-python --nogpgcheck
+           elif [[ $version -eq 5 ]]; then
+                yum install -y epel-release --nogpgcheck
+                yum install -y python26 --nogpgcheck
+           fi
+
+           if [ $band == true ]; then
+                _deregistration_os_redhat
+           fi
+      }
+
+      _get_Debian(){
+           os=$1
+           version=$2
+           apt-get update
+           if [ $os == "ubuntu" ] && [ ${version%%.*} -le 16 ]
+           then
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get install -y python
+           fi
+      }
+
+      _check_distro(){
+           if [ -f /etc/redhat-release ]
+           then
+              if [[ $(grep -ow "Red Hat" /etc/redhat-release) == "Red Hat" ]]
+              then
+                    if [ -f /etc/oracle-release ]
+                    then
+                        os="Oracle"
+                    else
+                        os="RedHat"
+                    fi
+               elif [[ `grep -w "ID" /etc/os-release | awk -F = '{print $2}' | tr -d '"'` == "centos" ]]
+               then
+                         os="CentOS"
+              fi
+              version=`grep -woE '[[:digit:]].*' /etc/redhat-release | cut -d "." -f1`
+              _get_RedHat $os $version
+           elif [ -f /etc/release ]
+           then
+                os=`grep -woi solaris /etc/release`
+                version=`grep -Ewoi [[:digit:]].[[:digit:]]+ /etc/release`
+           elif [ -f /etc/os-release ]
+           then
+                os=`grep -w "ID" /etc/os-release | awk -F = '{print $2}' | tr -d '"'`
+                version=`grep -w "VERSION_ID" /etc/os-release | awk -F = '{print $2}' | tr -d '"'`
+                if [ $os == "ubuntu" ] || [ $os == "debian"]
+                then
+                     _get_Debian $os $version
+                elif [ $os == 'sles' ]
+                then
+                    _get_Suse $os $version
+                elif [ $os == 'amzn' ]
+                then
+                    _get_Amazon $os $version
+                fi
+           fi
+        }
+
+   _check_distro
+
+    SHELL
+
+      config.vm.define "node01" do |node01|
+          node01.vm.box = "generic/rhel7"
+          node01.vm.hostname = "zprdOKDNDsv01.ansc.gob.pe"
+          node01.vm.network "private_network", ip: "192.168.33.231"
+          node01.vm.provider "virtualbox" do |vb|
+          vb.memory = "1024"
+          vb.cpus = "1"
+          vb.linked_clone = true
+          vb.name = "node01"
+          unless File.exist?(datadisk2)
+               vb.customize ['createhd', '--filename', datadisk2, '--size', 50 * 1024]
+             end
+          vb.customize ['storageattach', :id, '--storagectl', 'IDE Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', datadisk2]
+        end
+      end
+
+      config.vm.define "node02" do |node02|
+          node02.vm.box = "generic/rhel7"
+          node02.vm.hostname = "zprdOKDNDsv02.ansc.gob.pe"
+          node02.vm.network "private_network", ip: "192.168.33.232"
+          node02.vm.provider "virtualbox" do |vb|
+            vb.memory = "256"
+            vb.cpus = "1"
+            vb.linked_clone = true
+            vb.name = "node02"
+            unless File.exist?(datadisk1)
+              vb.customize ['createhd', '--filename', datadisk1, '--size', 50 * 1024]
+            end
+            vb.customize ['storageattach', :id, '--storagectl', 'IDE Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', datadisk1]
+        end
+      end
+
+      config.vm.define "master01" do |master01|
+          master01.vm.box = "generic/rhel7"
+          master01.vm.hostname = "zprdOKDMAsv01.ansc.gob.pe"
+          master01.vm.network "private_network", ip: "192.168.33.233"
+          master01.vm.provider "virtualbox" do |vb|
+            vb.memory = "256"
+            vb.cpus = "1"
+            vb.linked_clone = true
+            vb.name = "master01"
+        end
+      end
+
+      config.vm.provision "ansible" do |ansible|
+       ansible.playbook = "../../../ansible/playbooks/create-user-vagrant.yml"
+       ansible.host_vars = {
+         "node01" => {"remove_ip" => "192.168.33.231"},
+         "node02" => {"remove_ip" => "192.168.33.232"},
+         "master01" => {"remove_ip" => "192.168.33.233"}
+       }
+    end
+end

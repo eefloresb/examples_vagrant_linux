@@ -1,0 +1,73 @@
+Vagrant.configure("2") do |config|
+
+      config.vm.define "antlet70" do |antlet70|
+          antlet70.vm.box = "centos/7"
+          antlet70.vm.hostname = "antlet70.slackwarnet.com"
+          antlet70.vm.network "private_network", ip: "192.168.33.231"
+          antlet70.vm.provider "virtualbox" do |vb|
+          vb.memory = "1024"
+          vb.cpus = "1"
+          vb.linked_clone = true
+          vb.name = "antlet70"
+        end
+      end
+
+      config.vm.define "antlet71" do |antlet71|
+          antlet71.vm.box = "generic/rhel7"
+          antlet71.vm.hostname = "antlet71.slackwarnet.com"
+          antlet71.vm.network "private_network", ip: "192.168.33.232"
+          antlet71.vm.provider "virtualbox" do |vb|
+            vb.memory = "256"
+            vb.cpus = "1"
+            vb.linked_clone = true
+            vb.name = "antlet71"
+        end
+      end
+
+      config.vm.define "antlet72" do |antlet72|
+          antlet72.vm.box = "generic/rhel7"
+          antlet72.vm.hostname = "antlet72.slackwarnet.com"
+          antlet72.vm.network "private_network", ip: "192.168.33.233"
+          antlet72.vm.provider "virtualbox" do |vb|
+            vb.memory = "256"
+            vb.cpus = "1"
+            vb.linked_clone = true
+            vb.name = "antlet72"
+        end
+      end
+
+      config.vm.define "antlet73" do |antlet73|
+          antlet73.vm.box = "generic/rhel7"
+          antlet73.vm.hostname = "antlet73.slackwarnet.com"
+          antlet73.vm.network "private_network", ip: "192.168.33.234"
+          antlet73.vm.provider "virtualbox" do |vb|
+            vb.memory = "256"
+            vb.cpus = "1"
+            vb.linked_clone = true
+            vb.name = "antlet73"
+        end
+      end
+
+      config.vm.define "antlet74" do |antlet74|
+          antlet74.vm.box = "generic/rhel7"
+          antlet74.vm.hostname = "antlet74.slackwarnet.com"
+          antlet74.vm.network "private_network", ip: "192.168.33.235"
+          antlet74.vm.provider "virtualbox" do |vb|
+            vb.memory = "256"
+            vb.cpus = "1"
+            vb.linked_clone = true
+            vb.name = "antlet74"
+        end
+      end
+
+      config.vm.provision "ansible" do |ansible|
+       ansible.playbook = "/Users/edwinflores/Documents/github.com/MyProjects/ansible/playbooks/create-user-vagrant.yml"
+       ansible.host_vars = {
+         "antlet70" => {"remove_ip" => "192.168.33.231"},
+         "antlet71" => {"remove_ip" => "192.168.33.232"},
+         "antlet72" => {"remove_ip" => "192.168.33.233"},
+         "antlet73" => {"remove_ip" => "192.168.33.234"},
+         "antlet74" => {"remove_ip" => "192.168.33.235"}
+       }
+    end
+end

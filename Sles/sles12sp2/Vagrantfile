@@ -1,0 +1,28 @@
+Vagrant.configure("2") do |config|
+   config.vm.define "sles" do |sles|
+      sles.vm.network "forwarded_port", guest: 22, host: 2224, host_ip: "127.0.0.1"
+      sles.vm.synced_folder '.', '/vagrant', disabled: true
+      sles.vm.box = "suse/sles12sp2"
+      sles.vm.hostname = "lnxsles12sp2"
+      sles.vm.network "private_network", ip: "192.168.56.8"
+      sles.vm.provider "virtualbox" do |vb|
+          vb.memory = "1024"
+          vb.cpus = "1"
+          vb.linked_clone = true
+          vb.name = "lnxsles12sp2"
+      end
+      sles.trigger.before :destroy do |trigger|
+        trigger.warn = "Remove subscription for sles"
+        trigger.run_remote = {inline: "SUSEConnect -d"}
+      end
+   end
+ config.vm.provision "ansible" do |ansible|
+  ansible.playbook = "../../../ansible/ansible_deploy_vagrant/create-user-vagrant.yml"
+  ansible.host_vars = {
+    "sles" => {"remove_ip"=>"192.168.56.8",
+              "install_pkg"=>"true",
+              "ansible_python_interpreter" => "/usr/bin/python2"
+              }
+  }
+ end
+end

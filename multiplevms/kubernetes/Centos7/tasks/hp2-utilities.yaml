@@ -1,0 +1,55 @@
+- name: "RPM BASE | Install required packages"
+  yum:
+    name: "{{ item }}"
+    state: latest
+  loop:
+    - wget
+    - git
+    - net-tools
+    - bind-utils
+    - yum-utils
+    - iptables-services
+    - bridge-utils
+    - bash-completion
+    - kexec-tools
+    - sos
+    - psacct
+    - vim-enhanced
+    - vim
+    - telnet
+    - docker-{{ docker_version }}
+    - java-1.8.0-openjdk-headless
+    - httpd-tools
+    - ntp
+    - python-passlib
+
+- name: RPM BASE | Actualiza todos los paquetes
+  yum:
+    name: "*"
+    state: latest
+
+- name: Reiniciar para aplicar los cambios
+  reboot:
+    reboot_timeout: 300
+
+- name: Remover kernels antiguos sin uso en Red Hat/CentOS
+  shell: |
+    package-cleanup --oldkernels --count=1 -y
+  when:
+    ansible_os_family == 'RedHat' and ansible_distribution_major_version|int == 7
+
+- name: Set timezone to America/Lima
+  timezone:
+   name: America/Lima
+
+- name: instalar paquete ntp
+  yum:
+   name: ntp
+   state: present
+
+- name: service ntpd started
+  service:
+   name: ntpd
+   state: started
+   enabled: yes
+

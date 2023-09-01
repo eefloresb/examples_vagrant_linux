@@ -1,0 +1,22 @@
+
+- name: DOCKER STORAGE | Stoping docker
+  service:
+    name: docker
+    state: stopped
+
+- name: DOCKER STORAGE | create the docker-storage-setup config file
+  template:
+    src: "support/docker-storage-setup.j2"
+    dest: /etc/sysconfig/docker-storage-setup
+    owner: root
+    group: root
+    mode: 0644
+
+- name: DOCKER STORAGE | Running docker-storage-setup
+  command: docker-storage-setup
+
+- name: DOCKER STORAGE | enabling and restarting docker
+  service:
+    name: docker
+    enabled: yes
+    state: restarted

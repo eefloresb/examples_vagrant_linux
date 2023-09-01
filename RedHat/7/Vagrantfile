@@ -1,0 +1,36 @@
+datadisk1 = 'datadisk1.vdi'
+datadisk2 = 'data_disk2.vdi'
+Vagrant.configure("2") do |config|
+   config.vm.define "web" do |web|
+      web.vm.box = "generic/rhel7"
+      web.vm.box_version = "3.6.12"
+      web.vm.hostname = "lnxrhel7"
+      web.vm.network "private_network", ip: "192.168.56.14"
+      web.vm.provider "virtualbox" do |vb|
+          vb.memory = "512"
+          vb.cpus = "1"
+          vb.linked_clone = true
+          vb.name = "lnxrhel7"
+          unless File.exist?(datadisk1)
+              vb.customize ['createhd', '--filename', datadisk1, '--size', 50 * 1024]
+          end
+          vb.customize ['storageattach', :id, '--storagectl', 'IDE Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', datadisk1]
+          unless File.exist?(datadisk2)
+              vb.customize ['createhd', '--filename', datadisk2, '--size', 50 * 1024]
+          end
+          vb.customize ['storageattach', :id, '--storagectl', 'IDE Controller', '--port', 1, '--device', 1, '--type', 'hdd', '--medium', datadisk2]
+      end
+      web.trigger.before :destroy do |trigger|
+        trigger.warn = "Remove subscription for redhat"
+        trigger.run_remote = {inline: "subscription-manager remove --all"}
+      end
+   end
+ config.vm.provision "ansible" do |ansible|
+  ansible.playbook = "../../../ansible/ansible_deploy_vagrant/create-user-vagrant.yml"
+  ansible.host_vars = {
+    "web" => {"remove_ip"=>"192.168.56.14",
+              "install_pkg"=>"true" 
+              }
+  }
+ end
+end

@@ -1,0 +1,8 @@
+--- 
+- hosts: OSEv3,bastion
+  become: true
+  tasks: 
+   - name: copiar archivo resolv.conf
+     template: 
+      src: template/resolv.j2 
+      dest: /etc/resolv.conf

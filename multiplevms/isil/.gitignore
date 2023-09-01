@@ -1,0 +1,5 @@
+.vagrant
+vagrant-ssh
+*.retry
+*.log
+data_disk1.vdi

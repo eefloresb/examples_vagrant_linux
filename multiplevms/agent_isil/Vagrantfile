@@ -1,0 +1,75 @@
+datadisk1 = 'data_disk1.vdi'
+
+Vagrant.configure("2") do |config|
+
+  config.vm.provision "shell",
+    type: "shell",
+    preserve_order: true,
+    inline: <<-SHELL
+      _registration_os(){
+            if [ `which subscription-manager` ]
+            then
+                 subscription-manager register --username=$username --password=$password --auto-attach --force
+            fi
+       }
+
+      _get_RedHat(){
+           os=$1
+           version=$2
+           _registration_os
+           if [ $version -ge 7 ]; then
+                echo -e "LANG=en_US.UTF-8\nLC_ALL=en_US.UTF-8" > /etc/environment
+                yum install -y python36 --nogpgcheck
+           elif [ $version -eq 6 ]; then
+                yum install -y libselinux-python --nogpgcheck
+           elif [ $version -eq 5 ]; then
+                yum install -y epel-release --nogpgcheck
+                yum install -y python26 --nogpgcheck
+
+           fi
+      }
+
+      _get_Debian(){
+           $os=$1
+           $version=$2
+           apt-get update
+           export DEBIAN_FRONTEND=noninteractive
+           apt-get install -y python
+      }
+
+      _check_distro(){
+           if [ -f /etc/os-release ]; then
+                os=`grep -w "ID" /etc/os-release | awk -F = '{print $2}' | tr -d '"'`
+                version=`grep -w "VERSION_ID" /etc/os-release | awk -F = '{print $2}' | tr -d '"'`
+                if [ $os == "centos" ] || [ $os == "RedHat"]
+                then
+                     _get_RedHat $os $version
+                elif [ $os == "Debian"] || [ $os == "Ubuntu" ]
+                then
+                     _get_Debian $os $version
+                fi
+           elif [ -f /etc/redhat-release ];
+           then
+                if [[ $(grep -ow "Red Hat" /etc/redhat-release) == "Red Hat" ]]
+                then
+                     os="RedHat"
+                fi
+                version=`grep -wo '[[:digit:]]' /etc/redhat-release`
+                _get_RedHat $os $version
+           fi
+      }
+      _check_distro
+    SHELL
+
+      config.vm.define "debian8" do |debian8|
+        debian8.vm.box = "generic/debian8"
+        debian8.vm.hostname = "debian8"
+        debian8.vm.network "private_network", ip: "192.168.33.81"
+        debian8.vm.provider "virtualbox" do |vb|
+          vb.memory = "512"
+          vb.cpus = "1"
+          vb.linked_clone = true
+          vb.name = "bacula-dir"
+        end
+      end
+end

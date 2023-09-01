@@ -1,0 +1,34 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+datadisk1 = '.\data_disk1.vdi'
+datadisk2 = '.\data_disk2.vdi'
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "centos/7"
+  config.vm.synced_folder ".", "/vagrant", disabled: false
+
+  config.vm.provider "virtualbox" do |vb|
+    vb.gui = false
+    vb.cpus = 1
+    vb.memory = "1024"
+    vb.name = "Ceph-Admin"
+
+    unless File.exist?(datadisk1)
+      vb.customize ['createhd', '--filename', datadisk1, '--size', 20 * 1024]
+    end
+
+    unless File.exist?(datadisk2)
+    vb.customize ['createhd', '--filename', datadisk2, '--size', 20 * 1024]
+    end
+
+    vb.customize ['storageattach', :id, '--storagectl', 'IDE', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', datadisk1]
+    vb.customize ['storageattach', :id, '--storagectl', 'IDE', '--port', 1, '--device', 1, '--type', 'hdd', '--medium', datadisk2]
+
+    # Adding a SATA controller that allows 4 hard drives
+    #vb.customize ['storagectl', :id, '--name', 'SATA Controller', '--add', 'sata', '--portcount', 4]
+    # Attaching the disks using the SATA controller
+    #vb.customize ['storageattach', :id, '--storagectl', 'SATA Controller', '--port', 0, '--device', 0, '--type', 'hdd', '--medium', datadisk1]
+
+  end
+end

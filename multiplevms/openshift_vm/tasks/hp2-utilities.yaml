@@ -1,0 +1,37 @@
+
+- name: "RPM BASE | Install required packages"
+  yum:
+    name: "{{ item }}"
+    state: latest
+  with_items:
+    - wget
+    - git
+    - net-tools
+    - bind-utils
+    - yum-utils
+    - iptables-services
+    - bridge-utils
+    - bash-completion
+    - kexec-tools
+    - sos
+    - psacct
+    - vim-enhanced
+    - vim
+    - telnet
+    - docker-{{ docker_version }}
+    - java-1.8.0-openjdk-headless
+    - httpd-tools
+# ultimos dos utilitario para instalar sin problemas las metricas
+#        - atomic-openshift-utils
+#        - glusterfs-fuse
+#        - chrony
+
+- name: RPM BASE | Actualiza todos los paquetes
+  yum:
+    name: "*"
+    state: latest
+
+- name: Reiniciar para aplicar los cambios
+  reboot:
+    reboot_timeout: 300
+

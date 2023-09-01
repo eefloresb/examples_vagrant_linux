@@ -1,0 +1,221 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# All Vagrant configuration is done below. The "2" in Vagrant.configure
+# configures the configuration version (we support older styles for
+# backwards compatibility). Please don't change it unless you know what
+# you're doing.
+Vagrant.configure("2") do |config|
+
+   config.vm.provision "shell",
+    type: "shell",
+    preserve_order: true,
+    inline: <<-SHELL
+          #!/bin/sh
+      _registration_os_suse(){
+          SUSEConnect -e ${user_email} -r ${user_register}
+      }
+       _deregistration_os_suset(){
+          SUSEConnect -d
+      }
+      _registration_os_redhat(){
+            if [ `which subscription-manager` ]
+            then
+                 subscription-manager register --username=$username --password="$password" --auto-attach --force
+            fi
+       }
+       _deregistration_os_redhat(){
+            if [ `which subscription-manager` ]
+            then
+              subscription-manager unregister
+            fi
+       }
+      _get_Amazon(){
+          os=$1
+          version=${2}
+      }
+      _get_Suse(){
+          os=$1
+          version=${2}
+      }
+      _get_RedHat(){
+           os=$1
+           version=$2
+           band=false
+           if [ `which subscription-manager 2>/dev/null` ]; then
+                if [ `subscription-manager status | grep Overall | cut -d : -f 2 | tr -d " "` == "Unknown" ]
+                then
+                    _registration_os_redhat
+                    band=false
+                fi
+           fi
+           ### Desactiva repositorio epel para oracle
+           if [ $os = "Oracle" ]; then
+                sed -i -e "/enabled/s/1/0/" /etc/yum.repos.d/epel.repo
+           fi
+           if [[ $version -gt 7 ]]; then
+               dnf install python2
+               ln -s /usr/bin/python2 /usr/bin/python
+           elif [[ $version -eq 7 ]]; then
+                echo -e "LANG=en_US.UTF-8\nLC_ALL=en_US.UTF-8" > /etc/environment
+           elif [[ $version -eq 6 ]]; then
+                yum install -y libselinux-python --nogpgcheck
+           elif [[ $version -eq 5 ]]; then
+                yum install -y epel-release --nogpgcheck
+                yum install -y python26 --nogpgcheck
+           fi
+
+           if [ $band == true ]; then
+                _deregistration_os_redhat
+           fi
+      }
+
+      _get_Debian(){
+           os=$1
+           version=$2
+           apt-get update
+           if [ $os == "ubuntu" ] && [ ${version%%.*} -le 16 ]
+           then
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get install -y python
+           fi
+      }
+
+      _check_distro(){
+           if [ -f /etc/redhat-release ]
+           then
+              if [[ $(grep -ow "Red Hat" /etc/redhat-release) == "Red Hat" ]]
+              then
+                    if [ -f /etc/oracle-release ]
+                    then
+                        os="Oracle"
+                    else
+                        os="RedHat"
+                    fi
+               elif [[ `grep -w "ID" /etc/os-release | awk -F = '{print $2}' | tr -d '"'` == "centos" ]]
+               then
+                         os="CentOS"
+              fi
+              version=`grep -woE '[[:digit:]].*' /etc/redhat-release | cut -d "." -f1`
+              _get_RedHat $os $version
+           elif [ -f /etc/release ]
+           then
+                os=`grep -woi solaris /etc/release`
+                version=`grep -Ewoi [[:digit:]].[[:digit:]]+ /etc/release`
+           elif [ -f /etc/os-release ]
+           then
+                os=`grep -w "ID" /etc/os-release | awk -F = '{print $2}' | tr -d '"'`
+                version=`grep -w "VERSION_ID" /etc/os-release | awk -F = '{print $2}' | tr -d '"'`
+                if [ $os == "ubuntu" ] || [ $os == "debian"]
+                then
+                     _get_Debian $os $version
+                elif [ $os == 'sles' ]
+                then
+                    _get_Suse $os $version
+                elif [ $os == 'amzn' ]
+                then
+                    _get_Amazon $os $version
+                fi
+           fi
+        }
+
+   _check_distro
+
+    SHELL
+
+  # The most common configuration options are documented and commented below.
+  # For a complete reference, please see the online documentation at
+  # https://docs.vagrantup.com.
+
+  # Every Vagrant development environment requires a box. You can search for
+  # boxes at https://vagrantcloud.com/search.
+
+  # Disable automatic box update checking. If you disable this, then
+  # boxes will only be checked for updates when the user runs
+  # `vagrant box outdated`. This is not recommended.
+  # config.vm.box_check_update = false
+
+  # Create a forwarded port mapping which allows access to a specific port
+  # within the machine from a port on the host machine. In the example below,
+  # accessing "localhost:8080" will access port 80 on the guest machine.
+  # NOTE: This will enable public access to the opened port
+  # config.vm.network "forwarded_port", guest: 80, host: 8080
+
+  # Create a forwarded port mapping which allows access to a specific port
+  # within the machine from a port on the host machine and only allow access
+  # via 127.0.0.1 to disable public access
+  # config.vm.network "forwarded_port", guest: 80, host: 8080, host_ip: "127.0.0.1"
+
+  # Create a private network, which allows host-only access to the machine
+  # using a specific IP.
+    config.vm.network "public_network", bridge: "en7: USB 10/100/1000 LAN",
+    use_dhcp_assigned_default_route: true
+  
+  # default router
+    config.vm.provision "shell",
+    run: "always",
+    inline: "route add default gw 192.168.1.1"
+
+  # delete default gw on eth0
+    config.vm.provision "shell",
+    run: "always",
+    inline: "eval `route -n | awk '{ if ($8 ==\"eth0\" && $2 != \"0.0.0.0\") print \"route del default gw \" $2; }'`"
+
+    config.vm.network "private_network", ip: "192.168.33.15"
+
+  # Create a public network, which generally matched to bridged network.
+  # Bridged networks make the machine appear as another physical device on
+  # your network.
+  # config.vm.network "public_network"
+
+  # Share an additional folder to the guest VM. The first argument is
+  # the path on the host to the actual folder. The second argument is
+  # the path on the guest to mount the folder. And the optional third
+  # argument is a set of non-required options.
+  # config.vm.synced_folder "../data", "/vagrant_data"
+
+  # Provider-specific configuration so you can fine-tune various
+  # backing providers for Vagrant. These expose provider-specific options.
+  # Example for VirtualBox:
+  #
+  config.vm.box = "generic/rhel7"
+  config.vm.hostname = "k8s-master"
+  config.vm.provider "virtualbox" do |vb|
+  #   # Display the VirtualBox GUI when booting the machine
+  #   vb.gui = true
+  #
+  #   # Customize the amount of memory on the VM:
+      vb.memory = "8094"
+      vb.cpus = "2"
+      vb.linked_clone = true
+      vb.name = "k8s-master"
+  end
+  #
+  # View the documentation for the provider you are using for more
+  # information on available options.
+
+  #if Vagrant.has_plugin?("vagrant-proxyconf")
+  #  config.proxy.http     = "http://192.168.33.254:3128/"
+  #  config.proxy.https    = "http://192.168.33.254:3128/"
+  #  config.proxy.ftp      = "http://192.168.33.254:3128/"
+  #  config.proxy.no_proxy = "localhost,127.0.0.1,.example.com"
+  #end
+
+  # Enable provisioning with a shell script. Additional provisioners such as
+  # Puppet, Chef, Ansible, Salt, and Docker are also available. Please see the
+  # documentation for more information about their specific syntax and use.
+  # config.vm.provision "shell", inline: <<-SHELL
+  #   apt-get update
+  #   apt-get install -y apache2
+  # SHELL
+
+  # Ejecutar un playbook de ansible (wordpress.yml) como aprovisionamiento del box
+
+  config.vm.provision "ansible" do |ansible|
+    ansible.extra_vars = {
+      remove_ip: "192.168.33.15"
+     }
+  	ansible.playbook = "../../../ansible/playbooks/create-user-vagrant.yml"
+  end
+
+end

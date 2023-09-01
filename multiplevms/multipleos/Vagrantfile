@@ -1,0 +1,37 @@
+Vagrant.configure("2") do |config|
+    config.vm.define "centos7" do |centos7|
+      centos7.vm.box = "centos/7"
+      centos7.vm.hostname = "centos7"
+      centos7.vm.network "private_network", ip: "192.168.33.81"
+      centos7.vm.provider "virtualbox" do |vb|
+          vb.memory = "512"
+          vb.cpus = "1"
+          vb.linked_clone = true
+          vb.name = "centos7"
+        end
+    end
+
+    config.vm.define "redhat7" do |redhat7|
+      redhat7.vm.box = "iamseth/rhel-7.3"
+      redhat7.vm.hostname = "centos7"
+      redhat7.vm.network "private_network", ip: "192.168.33.82"
+      redhat7.vm.provider "virtualbox" do |vb|
+          vb.memory = "512"
+          vb.cpus = "1"
+          vb.linked_clone = true
+          vb.name = "redhat7"
+        end
+    end
+
+    config.vm.define "ubuntu1804" do |ubuntu1804|
+      ubuntu1804.vm.box = "ubuntu/bionic64"
+      ubuntu1804.vm.hostname = "ubuntu1804"
+      ubuntu1804.vm.network "private_network", ip: "192.168.33.83"
+      ubuntu1804.vm.provider "virtualbox" do |vb|
+          vb.memory = "512"
+          vb.cpus = "1"
+          vb.linked_clone = true
+          vb.name = "ubuntu1804"
+        end
+      end
+    end

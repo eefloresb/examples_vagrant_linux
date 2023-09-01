@@ -1,0 +1,299 @@
+datadisk1 = 'data_disk1.vdi'
+datadisk2 = 'data_disk2.vdi'
+datadisk3 = 'data_disk3.vdi'
+datadisk4 = 'data_disk4.vdi'
+datadisk5 = 'data_disk5.vdi'
+datadisk6 = 'data_disk6.vdi'
+datadisk7 = 'data_disk7.vdi'
+datadisk8 = 'data_disk8.vdi'
+datadisk9 = 'data_disk9.vdi'
+Vagrant.configure("2") do |config|
+
+  config.vm.provision "shell",
+    type: "shell",
+    preserve_order: true,
+    inline: <<-SHELL
+      _registration_os_suse(){
+          SUSEConnect -e loquitoslack@gmail.com -r 419F58B555869027
+      }
+       _deregistration_os_suset(){
+          SUSEConnect -d
+      }
+      _registration_os_redhat(){
+            if [ `which subscription-manager` ]
+            then
+                 subscription-manager register --username=$username --password=$password --auto-attach --force
+            fi
+       }
+       _deregistration_os_redhat(){
+            if [ `which subscription-manager` ]
+            then
+              subscription-manager unregister
+            fi
+       }
+      _get_Amazon(){
+          os=$1
+          version=${2}
+      }
+      _get_Suse(){
+          os=$1
+          version=${2}
+      }
+      _get_RedHat(){
+           os=$1
+           version=$2
+           band=false
+           if [ `which subscription-manager 2>/dev/null` ]; then
+                if [ `subscription-manager status | grep Overall | cut -d : -f 2 | tr -d " "` == "Unknown" ]
+                then
+                    _registration_os_redhat
+                    band=true
+                fi
+           fi
+           ### Desactiva repositorio epel para oracle
+           if [ $os = "Oracle" ]; then
+                sed -i -e "/enabled/s/1/0/" /etc/yum.repos.d/epel.repo
+           fi
+           if [[ $version -gt 7 ]]; then
+               dnf -y install python2 --nogpgcheck
+               ln -s -f /usr/bin/python2 /usr/bin/python
+           elif [[ $version -eq 7 ]]; then
+                echo -e "LANG=en_US.UTF-8\nLC_ALL=en_US.UTF-8" > /etc/environment
+           elif [[ $version -eq 6 ]]; then
+                yum install -y libselinux-python --nogpgcheck
+           elif [[ $version -eq 5 ]]; then
+                yum install -y epel-release --nogpgcheck
+                yum install -y python26 --nogpgcheck
+           fi
+
+           if [ $band == true ]; then
+                _deregistration_os_redhat
+           fi
+      }
+
+      _get_Debian(){
+           os=$1
+           version=$2
+           apt-get update
+           if [ $os == "ubuntu" ] && [ ${version%%.*} -le 16 ]
+           then
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get install -y python
+           fi
+      }
+
+      _check_distro(){
+           if [ -f /etc/redhat-release ]
+           then
+              if [[ $(grep -ow "Red Hat" /etc/redhat-release) == "Red Hat" ]]
+              then
+                    if [ -f /etc/oracle-release ]
+                    then
+                        os="Oracle"
+                    else
+                        os="RedHat"
+                    fi
+               elif [[ `grep -w "ID" /etc/os-release | awk -F = '{print $2}' | tr -d '"'` == "centos" ]]
+               then
+                         os="CentOS"
+              fi
+              version=`grep -woE '[[:digit:]].*' /etc/redhat-release | cut -d "." -f1`
+              _get_RedHat $os $version
+           elif [ -f /etc/release ]
+           then
+                os=`grep -woi solaris /etc/release`
+                version=`grep -Ewoi [[:digit:]].[[:digit:]]+ /etc/release`
+           elif [ -f /etc/os-release ]
+           then
+                os=`grep -w "ID" /etc/os-release | awk -F = '{print $2}' | tr -d '"'`
+                version=`grep -w "VERSION_ID" /etc/os-release | awk -F = '{print $2}' | tr -d '"'`
+                if [ $os == "ubuntu" ] || [ $os == "debian"]
+                then
+                     _get_Debian $os $version
+                elif [ $os == 'sles' ]
+                then
+                    _get_Suse $os $version
+                elif [ $os == 'amzn' ]
+                then
+                    _get_Amazon $os $version
+                fi
+           fi
+        }
+
+_check_distro
+
+    SHELL
+
+      config.vm.define "node01" do |node01|
+          node01.vm.box = "generic/rhel7"
+          node01.vm.hostname = "node01"
+          node01.vm.network "private_network", ip: "192.168.33.81"
+          node01.vm.provider "virtualbox" do |vb|
+          vb.memory = "512"
+          vb.cpus = "1"
+          vb.linked_clone = true
+          vb.name = "node01"
+          unless File.exist?(datadisk2)
+               vb.customize ['createhd', '--filename', datadisk2, '--size', 50 * 1024]
+             end
+          vb.customize ['storageattach', :id, '--storagectl', 'IDE Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', datadisk2]
+        end
+      end
+
+      config.vm.define "node02" do |node02|
+          node02.vm.box = "generic/rhel7"
+          node02.vm.hostname = "node02"
+          node02.vm.network "private_network", ip: "192.168.33.82"
+          node02.vm.provider "virtualbox" do |vb|
+            vb.memory = "256"
+            vb.cpus = "1"
+            vb.linked_clone = true
+            vb.name = "node02"
+            unless File.exist?(datadisk1)
+              vb.customize ['createhd', '--filename', datadisk1, '--size', 50 * 1024]
+            end
+            vb.customize ['storageattach', :id, '--storagectl', 'IDE Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', datadisk1]
+        end
+      end
+
+      config.vm.define "master01" do |master01|
+          master01.vm.box = "generic/rhel7"
+          master01.vm.hostname = "master01"
+          master01.vm.network "private_network", ip: "192.168.33.83"
+          master01.vm.provider "virtualbox" do |vb|
+            vb.memory = "256"
+            vb.cpus = "1"
+            vb.linked_clone = true
+            vb.name = "master01"
+        end
+      end
+
+      config.vm.define "master02" do |master02|
+          master02.vm.box = "generic/rhel7"
+          master02.vm.hostname = "master02"
+          master02.vm.network "private_network", ip: "192.168.33.84"
+          master02.vm.provider "virtualbox" do |vb|
+            vb.memory = "256"
+            vb.cpus = "1"
+            vb.linked_clone = true
+            vb.name = "master02"
+        end
+      end
+
+      config.vm.define "master03" do |master03|
+          master03.vm.box = "generic/rhel7"
+          master03.vm.hostname = "master03"
+          master03.vm.network "private_network", ip: "192.168.33.85"
+          master03.vm.provider "virtualbox" do |vb|
+            vb.memory = "256"
+            vb.cpus = "1"
+            vb.linked_clone = true
+            vb.name = "master03"
+        end
+      end
+
+      config.vm.define "infra01" do |infra01|
+          infra01.vm.box = "generic/rhel7"
+          infra01.vm.hostname = "infra01"
+          infra01.vm.network "private_network", ip: "192.168.33.86"
+          infra01.vm.provider "virtualbox" do |vb|
+            vb.memory = "256"
+            vb.cpus = "1"
+            vb.linked_clone = true
+            vb.name = "infra01"
+          unless File.exist?(datadisk3)
+               vb.customize ['createhd', '--filename', datadisk3, '--size', 50 * 1024]
+          end
+          unless File.exist?(datadisk4)
+               vb.customize ['createhd', '--filename', datadisk4, '--size', 50 * 1024]
+          end
+          vb.customize ['storageattach', :id, '--storagectl', 'IDE Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', datadisk3]
+          vb.customize ['storageattach', :id, '--storagectl', 'IDE Controller', '--port', 1, '--device', 1, '--type', 'hdd', '--medium', datadisk4]
+        end
+      end
+
+      config.vm.define "infra02" do |infra02|
+          infra02.vm.box = "generic/rhel7"
+          infra02.vm.hostname = "infra02"
+          infra02.vm.network "private_network", ip: "192.168.33.87"
+          infra02.vm.provider "virtualbox" do |vb|
+            vb.memory = "256"
+            vb.cpus = "1"
+            vb.linked_clone = true
+            vb.name = "infra02"
+          unless File.exist?(datadisk5)
+               vb.customize ['createhd', '--filename', datadisk5, '--size', 50 * 1024]
+          end
+          unless File.exist?(datadisk6)
+               vb.customize ['createhd', '--filename', datadisk6, '--size', 50 * 1024]
+          end
+          vb.customize ['storageattach', :id, '--storagectl', 'IDE Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', datadisk5]
+          vb.customize ['storageattach', :id, '--storagectl', 'IDE Controller', '--port', 1, '--device', 1, '--type', 'hdd', '--medium', datadisk6]
+        end
+      end
+
+      config.vm.define "infra03" do |infra03|
+          infra03.vm.box = "generic/rhel7"
+          infra03.vm.hostname = "infra03"
+          infra03.vm.network "private_network", ip: "192.168.33.88"
+          infra03.vm.provider "virtualbox" do |vb|
+            vb.memory = "256"
+            vb.cpus = "1"
+            vb.linked_clone = true
+            vb.name = "infra03"
+          unless File.exist?(datadisk7)
+               vb.customize ['createhd', '--filename', datadisk7, '--size', 50 * 1024]
+          end
+          unless File.exist?(datadisk8)
+               vb.customize ['createhd', '--filename', datadisk8, '--size', 50 * 1024]
+          end
+          vb.customize ['storageattach', :id, '--storagectl', 'IDE Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', datadisk7]
+          vb.customize ['storageattach', :id, '--storagectl', 'IDE Controller', '--port', 1, '--device', 1, '--type', 'hdd', '--medium', datadisk8]
+        end
+      end
+
+      config.vm.define "portal01" do |portal01|
+          portal01.vm.box = "generic/rhel8"
+          portal01.vm.hostname = "portal01"
+          portal01.vm.network "private_network", ip: "192.168.33.89"
+          portal01.vm.provider "virtualbox" do |vb|
+            vb.memory = "256"
+            vb.cpus = "1"
+            vb.linked_clone = true
+            vb.name = "portal01"
+        end
+      end
+
+      config.vm.define "ocpsvc" do |ocpsvc|
+          ocpsvc.vm.box = "generic/rhel8"
+          ocpsvc.vm.hostname = "ocpsvc"
+          ocpsvc.vm.network "private_network", ip: "192.168.33.90"
+          ocpsvc.vm.provider "virtualbox" do |vb|
+            vb.memory = "256"
+            vb.cpus = "1"
+            vb.linked_clone = true
+            vb.name = "ocpsvc"
+            unless File.exist?(datadisk9)
+              vb.customize ['createhd', '--filename', datadisk9, '--size', 50 * 1024]
+            end
+            vb.customize ['storageattach', :id, '--storagectl', 'IDE', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', datadisk9]
+        end
+      end
+
+      config.vm.provision "ansible" do |ansible|
+       ansible.playbook = "../../../ansible/playbooks/create-user-vagrant.yml"
+       ansible.host_vars = {
+         "node01" => {"remove_ip" => "192.168.33.81"},
+         "node02" => {"remove_ip" => "192.168.33.82"},
+         "master01" => {"remove_ip" => "192.168.33.83"},
+         "master02" => {"remove_ip" => "192.168.33.84"},
+         "master03" => {"remove_ip" => "192.168.33.85"},
+         "infra01" => {"remove_ip" => "192.168.33.86"},
+         "infra02" => {"remove_ip" => "192.168.33.87"},
+         "infra03" => {"remove_ip" => "192.168.33.88"},
+         "portal01" => {"remove_ip" => "192.168.33.89"},
+         "ocpsvc" => {"ansible_python_interpreter" => "/usr/bin/python3",
+                       "remove_ip" => "192.168.33.90"}
+       }
+    end
+end

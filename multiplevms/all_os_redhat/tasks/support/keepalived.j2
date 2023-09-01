@@ -1,0 +1,32 @@
+vrrp_script chk_haproxy {
+  script "killall -0 haproxy" # check the haproxy process
+  interval 2 # every 2 seconds
+  weight 2 # add 2 points if OK
+}
+
+vrrp_instance VI_1 {
+  interface eth0 # interface to monitor
+  state {% if haproxy_master == 'enabled' %} MASTER {% else %} BACKUP {% endif %}# MASTER on haproxy, BACKUP on haproxy2
+  virtual_router_id 51
+  priority 101 # 101 on haproxy, 100 on haproxy2
+  virtual_ipaddress {
+    {{ip_haproxy_console}} #vip
+  }
+  track_script {
+    chk_haproxy
+  }
+}
+
+vrrp_instance VI_2 {
+  interface eth0 # interface to monitor
+  state {% if haproxy_master == 'enabled' %} MASTER {% else %} BACKUP {% endif %}# MASTER on haproxy, BACKUP on haproxy2
+  virtual_router_id 52
+  priority 101 # 101 on haproxy, 100 on haproxy2
+  virtual_ipaddress {
+    {{ip_haproxy_wilcard}} #vip
+  }
+  track_script {
+    chk_haproxy
+  }
+}
+

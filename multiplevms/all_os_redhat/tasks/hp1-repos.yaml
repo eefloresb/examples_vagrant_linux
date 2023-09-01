@@ -1,0 +1,18 @@
+
+- name: REPOSITORIES | Deshabilita repos
+  rhsm_repository:
+    name: '*'
+    state: disabled
+
+- name: REPOSITORIES | Habilita repositorios especificos
+  rhsm_repository:
+    name: "{{ item }}"
+    state: enabled
+  loop:
+    - 'rhel-7-server-rpms'
+    - 'rhel-7-server-extras-rpms'
+    - 'rhel-7-server-ose-{{ocp_version}}-rpms'
+    - 'rhel-7-fast-datapath-rpms'
+    - 'rhel-7-server-ansible-2.9-rpms'
+    - 'rh-gluster-3-client-for-rhel-7-server-rpms'
+    - 'rhel-7-server-optional-rpms'

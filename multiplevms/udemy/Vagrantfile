@@ -1,0 +1,38 @@
+#
+#
+VAGRANTFILE_API_VERSION = "2"
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+  # General Vagrant VM configuration
+  config.vm.box = "generic/centos7"
+  config.ssh.insert_key = false
+  config.vm.synced_folder ".", "/vagrant", disabled: true
+  config.vm.provider :virtualbox do |v|
+   	v.memory = 1024
+	v.linked_clone = true
+  end
+
+  # Server A
+  config.vm.define "servera" do |app|
+    app.vm.hostname = "servera.lab.com"
+    app.vm.network :private_network, ip: "192.168.33.74"
+  end
+
+  config.vm.define "serverb" do |app|
+    app.vm.hostname = "serverb.lab.com"
+    app.vm.network :private_network, ip: "192.168.33.75"
+  end
+
+  config.vm.define "serverc" do |app|
+    app.vm.hostname = "serverc.lab.com"
+    app.vm.network :private_network, ip: "192.168.33.76"
+  end
+  
+  config.vm.provision "ansible" do |ansible|
+  ansible.playbook = "../../../ansible/playbooks/create-user-vagrant.yml"
+  ansible.host_vars = {
+     "servera" => {"remove_ip" => "192.168.33.74"},
+     "serverb" => {"remove_ip" => "192.168.33.75"},
+     "serverc" => {"remove_ip" => "192.168.33.76"}
+  }
+  end
+end

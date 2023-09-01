@@ -1,0 +1,22 @@
+Vagrant.configure("2") do |config|
+   config.vm.define "ubnt" do |ubnt|
+      ubnt.vm.synced_folder '.', '/vagrant', disabled: true
+      ubnt.vm.box = "kalilinux/rolling"
+      ubnt.vm.hostname = "lnxkali"
+      ubnt.vm.network "private_network", ip: "192.168.56.12"
+      ubnt.vm.provider "virtualbox" do |vb|
+          vb.memory = "4096"
+          vb.cpus = "4"
+          vb.linked_clone = true
+          vb.name = "lnxkali"
+      end
+   end
+ config.vm.provision "ansible" do |ansible|
+  ansible.playbook = "../../ansible/ansible_deploy_vagrant/create-user-vagrant.yml"
+  ansible.host_vars = {
+    "ubnt" => {"remove_ip"=>"192.168.56.12",
+              "install_pkg"=>"true"
+              }
+  }
+ end
+end

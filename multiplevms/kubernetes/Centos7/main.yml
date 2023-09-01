@@ -1,0 +1,53 @@
+---
+- name: 1 | REPOSITORIES
+  hosts: all
+  # hosts: OSEv3
+  gather_facts: yes
+  become: yes
+  vars:
+    ocp_version: 3.11
+  tasks:
+    - name: Habilitado de repositorios necesarios
+      include_tasks: tasks/hp1-repos.yaml
+
+- name: 2 | UTILITIES
+  hosts: all
+  tags: web01
+  gather_facts: yes
+  become: yes
+  vars:
+    docker_version: 1.13.1
+  tasks:
+    - name: Istalacion de utilitarios
+      include_tasks: tasks/hp2-utilities.yaml
+
+- name: 3 | DOCKER STORAGE
+  hosts: docker
+  gather_facts: yes
+  become: yes
+  vars:
+    docker_dev: "/dev/sdb"
+    #docker_dev: "{{ device }}"
+    docker_vg: "docker-vol"
+    docker_data_size: "95%VG"
+    docker_dm_basesize: "35G"
+  tasks:
+    - name: Configuracion del docker storage
+      include_tasks: tasks/hp3-docker-storage.yaml
+
+- name: 4 | Instalacion de haproxy
+  hosts: haproxy
+  gather_facts: yes
+  become: yes
+  vars:
+        ip_master_01: "192.168.33.83"
+        ip_master_02: "192.168.33.84"
+        ip_master_03: "192.168.33.85"
+        infra_01: "192.168.33.86"
+        infra_02: "192.168.33.87"
+        infra_03: "192.168.33.88"
+        ip_haproxy_console: "192.168.33.5"
+        ip_haproxy_wilcard: "192.168.33.6"
+  tasks:
+    - name: Configuracion del haproxy
+      include_tasks: tasks/hp4-haproxy.yaml

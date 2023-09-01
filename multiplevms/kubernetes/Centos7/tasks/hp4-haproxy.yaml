@@ -1,0 +1,54 @@
+- name: Deshabilitar firewalld
+  service:
+       name: firewalld
+       state: stopped
+       enabled: False
+
+- name: Instalar paquetes de haproxy y keepalived
+  yum:
+    name: "{{item}}"
+    state: present
+  loop:
+    - haproxy
+    - keepalived
+
+- name: Detener el servicio haproxy keepalived
+  service:
+     name: "{{item}}"
+     state: stopped
+  loop:
+     - haproxy
+     - keepalived
+
+- name: sacar un backup de los archivos de configuracion
+  copy:
+       src:  "{{item.src}}"
+       dest: "{{item.dst}}"
+       remote_src: yes
+  loop:
+       - { src: '/etc/haproxy/haproxy.cfg', dst: '/etc/haproxy/haproxy.bkp' }
+       - { src: '/etc/keepalived/keepalived.conf', dst: '/etc/keepalived/keepalived.bkp' }
+
+- name: copiar la configuracion de haproxy y keepalived
+  template:
+     src: "support/haproxy.j2"
+     dest: /etc/haproxy/haproxy.conf
+
+- name: Definir variable master y backup
+  set_fact:
+     haproxy_master: "{{ 'enabled' if inventory_hostname == 'hamaster' else 'disabled' }}"
+
+- name: copiar la configuracion keepalived
+  template:
+     src: "support/keepalived.j2"
+     dest: "/etc/keepalived/keepalived.conf"
+
+- name: Iniciar el servicio haproxy keepalived
+  service:
+    name: "{{item}}"
+    state: started
+  loop:
+    - haproxy
+    - keepalived
+
+

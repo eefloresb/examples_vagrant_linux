@@ -1,0 +1,43 @@
+Vagrant.configure("2") do |config|
+
+  config.vm.provision "shell",
+    type: "shell",
+    preserve_order: true,
+    inline: <<-SHELL
+      if [ `cat /etc/os-release | grep -ioe "debian"` = "debian" ]; then
+        apt-get update
+        apt-get install -y python
+      else
+        echo -e "LANG=en_US.UTF-8\nLC_ALL=en_US.UTF-8" > /etc/environment
+      fi
+  SHELL
+
+  config.vm.define "ubuntu" do |ubuntu|
+      ubuntu.vm.box = "ubuntu/bionic64"
+      ubuntu.vm.hostname = "ubuntu"
+      ubuntu.vm.network "private_network", ip: "192.168.33.78"
+      ubuntu.vm.provider "virtualbox" do |vb|
+          vb.memory = "256"
+          vb.cpus = "2"
+          vb.linked_clone = true
+          vb.name = "ubuntu"
+      end
+  end
+
+  config.vm.define "ansible1" do |ansible1|
+      ansible1.vm.box = "centos/7"
+      ansible1.vm.hostname = "ansible1"
+      ansible1.vm.network "private_network", ip: "192.168.33.81"
+      ansible1.vm.provider "virtualbox" do |vb|
+        vb.memory = "256"
+        vb.cpus = "1"
+        vb.linked_clone = true
+        vb.name = "ansible1"
+      end
+end
+
+  config.vm.provision "ansible" do |ansible|
+  ansible.playbook = "/Users/edwinflores/Documents/github.com/MyProjects/ansible/playbooks/create-user-vagrant.yml"
+  end
+
+end

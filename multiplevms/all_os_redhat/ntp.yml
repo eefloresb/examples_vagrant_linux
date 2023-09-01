@@ -1,0 +1,20 @@
+---
+- hosts: all
+  gather_facts: false
+  become: true
+  tasks:
+
+     - name: Set timezone to America/Lima
+       timezone:
+        name: America/Lima
+
+     - name: instalar paquete ntp
+       yum:
+         name: ntp
+         state: present
+
+     - name: service ntpd started
+       service:
+               name: ntpd
+               state: started
+               enabled: yes

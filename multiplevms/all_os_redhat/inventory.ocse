@@ -1,0 +1,31 @@
+[OSEv3]
+zprdOKDNDsv01.ansc.gob.pe   ansible_host="192.168.33.231"
+zprdOKDNDsv02.ansc.gob.pe   ansible_host="192.168.33.232"
+zprdOKDMAsv01.ansc.gob.pe   ansible_host="192.168.33.233"
+zprdOKDMAsv02.ansc.gob.pe   ansible_host="192.168.33.234"
+zprdOKDMAsv03.ansc.gob.pe   ansible_host="192.168.33.235"
+zprdOKDINsv01.ansc.gob.pe   ansible_host="192.168.33.236"
+zprdOKDINsv02.ansc.gob.pe   ansible_host="192.168.33.237"
+zprdOKDINsv03.ansc.gob.pe   ansible_host="192.168.33.238"
+zprdOBALAsv01.ansc.gob.pe   ansible_host="192.168.33.239"
+zprdOBALAsv02.ansc.gob.pe   ansible_host="192.168.33.240"
+zprdOBASTisv02.ansc.gob.pe  ansible_host="192.168.33.229"
+
+[docker]
+zprdOKDNDsv01.ansc.gob.pe   ansible_host="192.168.33.231"
+zprdOKDNDsv02.ansc.gob.pe   ansible_host="192.168.33.232"
+zprdOKDINsv01.ansc.gob.pe   ansible_host="192.168.33.236"
+zprdOKDINsv02.ansc.gob.pe   ansible_host="192.168.33.237"
+zprdOKDINsv03.ansc.gob.pe   ansible_host="192.168.33.238"
+
+[haproxy]
+zprdOBALAsv01.ansc.gob.pe   ansible_host="192.168.33.239"
+zprdOBALAsv02.ansc.gob.pe   ansible_host="192.168.33.240"
+
+[glusterfs]
+zprdOKDINsv01.ansc.gob.pe   ansible_host="192.168.33.236"
+zprdOKDINsv02.ansc.gob.pe   ansible_host="192.168.33.237"
+zprdOKDINsv03.ansc.gob.pe   ansible_host="192.168.33.238"
+
+[bastion]
+zprdOBASTisv02.ansc.gob.pe  ansible_host="192.168.33.229"

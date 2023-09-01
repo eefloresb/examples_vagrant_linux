@@ -1,0 +1,4 @@
+.vagrant
+data_disk?.vdi
+*.retry
+*.bkp

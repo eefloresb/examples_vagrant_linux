@@ -1,0 +1,26 @@
+---
+- hosts: OSEv3,bastion
+  become: true
+  vars:
+       dns_name:
+            - zprdOKDNDsv01.ansc.gob.pe
+            - zprdOKDNDsv02.ansc.gob.pe
+            - zprdOKDMAsv01.ansc.gob.pe
+            - zprdOKDMAsv02.ansc.gob.pe
+            - zprdOKDMAsv03.ansc.gob.pe
+            - zprdOKDINsv01.ansc.gob.pe
+            - zprdOKDINsv02.ansc.gob.pe
+            - zprdOKDINsv03.ansc.gob.pe
+            - zprdOBALAsv01.ansc.gob.pe
+            - zprdOBALAsv02.ansc.gob.pe
+  tasks:
+    - name: checkear servicio dns name
+      shell: |
+          host -t A "{{item}}"
+      with_items:
+        - "{{ dns_name }}"
+      register: check_dns
+
+    - name: Mostrar resultado remoto
+      debug:
+              msg: "{{check_dns | json_query('results[*].stdout')}}"

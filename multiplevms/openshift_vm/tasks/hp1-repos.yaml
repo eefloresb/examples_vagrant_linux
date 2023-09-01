@@ -1,0 +1,31 @@
+
+- name: REPOSITORIES | Deshabilita repos
+  rhsm_repository:
+    name: '*'
+    state: disabled
+
+- name: REPOSITORIES | Habilita repositorios especificos
+  rhsm_repository:
+    name: "{{ item }}"
+    state: enabled
+  with_items:
+    - 'rhel-7-server-rpms'
+    - 'rhel-7-server-extras-rpms'
+    - 'rhel-7-server-ose-{{ocp_version}}-rpms'
+    - 'rhel-7-fast-datapath-rpms'
+    - 'rhel-7-server-ansible-2.9-rpms'
+    - 'rh-gluster-3-client-for-rhel-7-server-rpms'
+
+#- name: install repo epel
+#  yum:
+#    name: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm"
+#    state: present
+#
+#- name: Desactivar epel repo
+#  lineinfile:
+#    path: /etc/yum.repos.d/epel.repo
+#    state: present
+#    regexp: '^enabled=1'
+#    line: 'enable=0'
+#
+#

@@ -1,0 +1,54 @@
+#
+#
+VAGRANTFILE_API_VERSION = "2"
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+  # General Vagrant VM configuration
+  config.ssh.insert_key = false
+  config.vm.synced_folder ".", "/vagrant", disabled: true
+  config.vm.provider :virtualbox do |v|
+   	v.memory = 1024
+	  v.linked_clone = true
+#    v.customize ["storageattach", :id, "--storagectl", "IDE Controller", "--port", "0", "--device", "1", "--type", "dvddrive", "--medium", "rhel-server-7.9-x86_64-dvd.iso"]
+#    v.customize ["modifyvm", :id, "--boot1", "disk", "--boot2", "dvd"]
+  end
+
+  # Server A
+  config.vm.define "servera" do |app|
+    app.vm.hostname = "servera.lab.com"
+    app.vm.box = "generic/rhel8"
+    app.vm.hostname = "servera.lab.com"
+    app.vm.network :private_network, ip: "192.168.20.50"
+  end
+  # Server B
+  config.vm.define "serverb" do |app|
+    app.vm.hostname = "serverb.lab.com"
+    app.vm.box = "generic/rhel8"
+    app.vm.network :private_network, ip: "192.168.20.60"
+  end
+  # Server C
+  config.vm.define "serverc" do |app|
+    app.vm.hostname = "serverc.lab.com"
+    app.vm.box = "generic/rhel8"
+    app.vm.network :private_network, ip: "192.168.20.70"
+  end
+
+ config.hostsupdater.aliases = {
+   '192.168.20.50' => ['servera.lab.com', 'www.servera.lab.com','rhel8master.labrhel.com','rhel8master'],
+   '192.168.20.60' => ['serverb.lab.com', 'www.serverb.lab.com','rhel8client1.labrhel.com','rhel8client1'],
+   '192.168.20.70' => ['serverc.lab.com', 'www.serverc.lab.com','rhel8client2.labrhel.com','rhel8client2']
+  }
+
+ config.trigger.before :destroy do |trigger|
+   trigger.warn = "Remove subscription for redhat"
+   trigger.run_remote = {inline: "subscription-manager remove --all"}
+ end
+
+  config.vm.provision "ansible" do |ansible|
+  ansible.playbook = "../../../../ansible/ansible_deploy_vagrant/create-user-vagrant.yml"
+  ansible.host_vars = {
+     "servera" => {"remove_ip" => "192.168.20.50"},
+     "serverb" => {"remove_ip" => "192.168.20.60"},
+     "serverc" => {"remove_ip" => "192.168.20.70"}
+  }
+  end
+end
