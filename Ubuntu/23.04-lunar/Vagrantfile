@@ -12,7 +12,7 @@ Vagrant.configure("2") do |config|
       end
    end
  config.vm.provision "ansible" do |ansible|
-    ansible.playbook = "~/git.personal/ansible_for_unix/ansible_deploy_vagrant/create-user-vagrant.yml"
+    ansible.playbook = "/home/eflores/git.personal/ansible_for_unix/ansible_deploy_vagrant/create-user-vagrant.yml"
   ansible.host_vars = {
     "ubnt" => {"remove_ip"=>"192.168.56.29",
               "install_pkg"=>"true"
