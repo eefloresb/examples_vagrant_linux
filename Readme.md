@@ -24,4 +24,4 @@ Thank you for being part of our community.
 
 Sincerely,
 
-[Enrique][https://www.linkedin.com/in/edwin-enrique-flores-bautista/]
+[Enrique](https://www.linkedin.com/in/edwin-enrique-flores-bautista/)
